@@ -183,6 +183,7 @@ app.get('/profile', ensureAuthenticated, (req, res) => {
                         <a href="/admin/tables" class="btn admin-btn">Manage Tables (Admin Only)</a>
                         <a href="/admin/games" class="btn admin-btn">Manage Games (Admin Only)</a>
                         <a href="/admin/bookings" class="btn admin-btn">View All Bookings (Admin Only)</a>
+                        <a href="/admin/halls">Manage Hall Bookings (Admin Only)</a>
                     ` : ''}
                     <a href="/logout" class="btn logout-btn">Logout</a>
                 </div>
@@ -203,6 +204,38 @@ app.get('/logout', (req, res, next) => {
             res.redirect('/');
         });
     });
+});
+
+// Admin Panel Dashboard Route
+app.get('/admin', ensureAuthenticated, (req, res) => {
+    // Ensure only admins can access this page
+    if (!req.user.is_admin) {
+        return res.status(403).send('Forbidden'); // Or redirect to profile
+    }
+
+    res.send(`
+        <!DOCTYPE html>
+        <html lang="en">
+        <head>
+            <meta charset="UTF-8">
+            <meta name="viewport" content="width=device-width, initial-scale=1.0">
+            <title>Admin Panel</title>
+            <link rel="stylesheet" href="/styles.css">
+        </head>
+        <body>
+            <div class="container">
+                <h1>Admin Panel</h1>
+                <p><a href="/profile">Back to Profile</a></p>
+                <h2>Admin Tools</h2>
+                <ul>
+                    <li><a href="/admin/users">Manage Users</a></li>
+                    <li><a href="/admin/games">Manage Games</a></li>
+                    <li><a href="/admin/halls">Manage Hall Bookings</a></li>
+                    </ul>
+            </div>
+        </body>
+        </html>
+    `);
 });
 
 // Admin Tables Route
@@ -304,6 +337,171 @@ app.get('/admin/tables', ensureAdmin, async (req, res) => {
         console.error('Error in /admin/tables route:', error);
         res.status(500).send('Server error loading admin tables page.');
     }
+});
+
+app.get('/admin/halls', ensureAuthenticated, (req, res) => {
+    if (!req.user.is_admin) {
+        return res.status(403).send('Forbidden');
+    }
+    res.send(`
+        <!DOCTYPE html>
+        <html lang="en">
+        <head>
+            <meta charset="UTF-8">
+            <meta name="viewport" content="width=device-width, initial-scale=1.0">
+            <title>Admin Hall Management</title>
+            <link rel="stylesheet" href="/styles.css">
+            <style>
+                /* Styles for the new admin page */
+                .hall-status {
+                    display: flex;
+                    align-items: center;
+                    gap: 20px;
+                    margin-top: 20px;
+                }
+            </style>
+        </head>
+        <body>
+            <div class="container">
+                <h1>Admin Hall Management</h1>
+                <p><a href="/admin">Back to Admin Panel</a></p>
+
+                <div class="hall-status">
+                    <h3>Disable Small Hall for a Tuesday:</h3>
+                    <select id="tuesdaySelect"></select>
+                    <button id="toggleBtn" data-status="enable">Enable Small Hall</button>
+                </div>
+                <p id="feedback-message"></p>
+                <hr style="margin-top: 20px;">
+                <h3>Currently Disabled Dates:</h3>
+                <ul id="disabledDatesList"></ul>
+            </div>
+            <script>
+                const tuesdaySelect = document.getElementById('tuesdaySelect');
+                const toggleBtn = document.getElementById('toggleBtn');
+                const feedbackMsg = document.getElementById('feedback-message');
+                const disabledDatesList = document.getElementById('disabledDatesList');
+
+                function getNextNTuesdays(n) {
+                    const dates = [];
+                    let d = new Date();
+                    d.setHours(0, 0, 0, 0);
+                    let dayOfWeek = d.getDay();
+                    const tuesday = 2;
+                    let daysToAdd = (tuesday - dayOfWeek + 7) % 7;
+                    if (daysToAdd === 0 && dayOfWeek !== tuesday) { daysToAdd = 7; }
+                    let currentTuesday = new Date(d.getTime());
+                    currentTuesday.setDate(d.getDate() + daysToAdd);
+                    for (let i = 0; i < n; i++) {
+                        const nextTuesday = new Date(currentTuesday.getTime());
+                        nextTuesday.setDate(currentTuesday.getDate() + (i * 7));
+                        dates.push(nextTuesday);
+                    }
+                    return dates;
+                }
+
+                function formatDate(date) {
+                    const year = date.getFullYear();
+                    const month = String(date.getMonth() + 1).padStart(2, '0');
+                    const day = String(date.getDate()).padStart(2, '0');
+                    return year + '-' + month + '-' + day;
+                }
+
+                async function fetchDisabledDates() {
+                    try {
+                        const response = await fetch('/api/admin/disabled-halls');
+                        const data = await response.json();
+                        if (!response.ok) {
+                            throw new Error(data.message || 'Failed to fetch disabled dates.');
+                        }
+                        return data.dates;
+                    } catch (error) {
+                        console.error('Error fetching disabled dates:', error);
+                        return [];
+                    }
+                }
+
+                function updateUI(disabledDates) {
+                    tuesdaySelect.innerHTML = '';
+                    const nextFourTuesdays = getNextNTuesdays(4);
+
+                    nextFourTuesdays.forEach(date => {
+                        const formattedDate = formatDate(date);
+                        const option = document.createElement('option');
+                        option.value = formattedDate;
+                        option.innerText = date.toLocaleDateString('en-GB', { weekday: 'long', year: 'numeric', month: 'short', day: 'numeric' });
+                        tuesdaySelect.appendChild(option);
+                    });
+
+                    const selectedDate = tuesdaySelect.value;
+                    const isDisabled = disabledDates.includes(selectedDate);
+                    toggleBtn.innerText = isDisabled ? 'Enable Small Hall' : 'Disable Small Hall';
+                    toggleBtn.dataset.status = isDisabled ? 'enable' : 'disable';
+
+                    disabledDatesList.innerHTML = '';
+                    if (disabledDates.length > 0) {
+                        disabledDates.forEach(date => {
+                            const li = document.createElement('li');
+                            li.innerText = date;
+                            disabledDatesList.appendChild(li);
+                        });
+                    } else {
+                        disabledDatesList.innerHTML = '<li>No dates are currently disabled.</li>';
+                    }
+                }
+
+                async function toggleHallStatus() {
+                    const selectedDate = tuesdaySelect.value;
+                    const status = toggleBtn.dataset.status === 'disable';
+                    try {
+                        const response = await fetch('/api/admin/toggle-small-hall', {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify({ booking_date: selectedDate, disable: status })
+                        });
+                        const data = await response.json();
+                        if (!response.ok) {
+                            throw new Error(data.message || 'Failed to update status.');
+                        }
+                        feedbackMsg.innerText = data.message;
+                        feedbackMsg.style.color = 'green';
+                        const disabledDates = await fetchDisabledDates();
+                        updateUI(disabledDates);
+                    } catch (error) {
+                        feedbackMsg.innerText = error.message;
+                        feedbackMsg.style.color = 'red';
+                    }
+                }
+
+                document.addEventListener('DOMContentLoaded', async () => {
+                    const disabledDates = await fetchDisabledDates();
+                    updateUI(disabledDates);
+                    tuesdaySelect.addEventListener('change', async () => {
+                        const selectedDate = tuesdaySelect.value;
+                        const disabledDates = await fetchDisabledDates();
+                        const isDisabled = disabledDates.includes(selectedDate);
+                        toggleBtn.innerText = isDisabled ? 'Enable Small Hall' : 'Disable Small Hall';
+                        toggleBtn.dataset.status = isDisabled ? 'enable' : 'disable';
+                    });
+                    toggleBtn.addEventListener('click', toggleHallStatus);
+                });
+            </script>
+        </body>
+        </html>
+    `);
+});
+
+app.get('/api/admin/disabled-halls', ensureAuthenticated, (req, res) => {
+    if (!req.user || !req.user.is_admin) {
+        return res.status(403).json({ message: 'Forbidden' });
+    }
+    db.all("SELECT booking_date FROM disabled_halls", [], (err, rows) => {
+        if (err) {
+            return res.status(500).json({ message: "Failed to fetch disabled dates." });
+        }
+        const dates = rows.map(row => row.booking_date);
+        res.json({ dates });
+    });
 });
 
 // Admin Games Route
@@ -585,15 +783,15 @@ app.get('/bookings', ensureAuthenticated, async (req, res) => {
                         font-size: 1.2em;
                     }
 
-                    #tableGrid {
-                        display: grid; /* Use CSS Grid */
-                        grid-template-columns: repeat(7, 1fr); /* 7 columns, each taking equal space */
-                        gap: 20px; /* Space between grid items */
-                        justify-content: center; /* Center grid tracks if grid container is wider than content */
+                    .table-grid { /* A common class for both halls */
+                        display: grid;
+                        grid-template-columns: repeat(7, 1fr);
+                        gap: 20px;
+                        justify-content: center;
                         margin-top: 20px;
-                        max-width: fit-content; /* Adjust container width to fit 7 columns + gaps */
-                        margin-left: auto; /* Center the grid container */
-                        margin-right: auto; /* Center the grid container */
+                        max-width: fit-content;
+                        margin-left: auto;
+                        margin-right: auto;
                     }
                     .table-card {
                         border: 1px solid #ccc;
@@ -658,7 +856,12 @@ app.get('/bookings', ensureAuthenticated, async (req, res) => {
                             </select>
                     </div>
 
-                    <div id="tableGrid">
+                    <h2 style="margin-top: 30px;">Large Hall</h2>
+                    <div id="largeHallGrid" class="table-grid">
+                        </div>
+
+                    <h2 style="margin-top: 30px;">Small Hall</h2>
+                    <div id="smallHallGrid" class="table-grid">
                         </div>
 
                     <div id="bookingForm" style="display: none; margin-top: 30px; border: 1px solid #eee; padding: 20px; border-radius: 8px; background-color: #f9f9f9;">
@@ -803,6 +1006,7 @@ app.get('/api/tables-with-bookings', ensureAuthenticated, async (req, res) => {
                 SELECT
                     t.id AS table_id,
                     t.name AS table_name,
+                    t.hall_name,
                     b.id AS booking_id,
                     b.game_id,
                     g.name AS game_name,
@@ -815,7 +1019,7 @@ app.get('/api/tables-with-bookings', ensureAuthenticated, async (req, res) => {
                 LEFT JOIN users AS u ON b.booked_by_user_id = u.id
                 ORDER BY CAST(t.name as INTEGER);
             `;
-            db.all(sql, [date], (err, rows) => {
+            db.all(sql, [date, date], (err, rows) => {
                 if (err) reject(err);
                 resolve(rows);
             });
@@ -838,6 +1042,31 @@ app.get('/api/tables-with-bookings', ensureAuthenticated, async (req, res) => {
     } catch (error) {
         console.error('Error fetching tables with bookings:', error);
         res.status(500).json({ message: 'Failed to fetch table availability.', error: error.message });
+    }
+});
+
+// API endpoint for admins to toggle small hall availability
+app.post('/api/admin/toggle-small-hall', ensureAuthenticated, (req, res) => {
+    if (!req.user || !req.user.is_admin) {
+        return res.status(403).json({ message: 'Forbidden' });
+    }
+
+    const { booking_date, disable } = req.body;
+
+    if (disable) {
+        db.run("INSERT OR IGNORE INTO disabled_halls (booking_date) VALUES (?)", [booking_date], function(err) {
+            if (err) {
+                return res.status(500).json({ message: "Failed to disable hall: " + err.message });
+            }
+            res.json({ message: "Small Hall disabled successfully for " + booking_date });
+        });
+    } else {
+        db.run("DELETE FROM disabled_halls WHERE booking_date = ?", [booking_date], function(err) {
+            if (err) {
+                return res.status(500).json({ message: "Failed to enable hall: " + err.message });
+            }
+            res.json({ message: "Small Hall enabled successfully for " + booking_date });
+        });
     }
 });
 
