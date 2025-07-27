@@ -6,6 +6,7 @@ const passport = require('passport');
 const DiscordStrategy = require('passport-discord').Strategy;
 const sqlite3 = require('sqlite3').verbose(); // Import sqlite3
 const db = require('./database'); // Import your database connection
+const path = require('path');
 
 const app = express();
 
@@ -171,22 +172,33 @@ app.get('/profile', ensureAuthenticated, (req, res) => {
             <link rel="stylesheet" href="/styles.css">
         </head>
         <body>
-            <div class="container">
-                <h1>Welcome, ${req.user.username}!</h1>
-                <p>Discord ID: ${req.user.discord_id}</p>
-                ${req.user.avatar ? `<img src="https://cdn.discordapp.com/avatars/${req.user.discord_id}/${req.user.avatar}.png?size=128" alt="User Avatar" class="avatar">` : ''}
-                <p>Admin Status: ${req.user.is_admin ? 'Yes' : 'No'}</p>
+        <div class="container">
+            <h1>User Profile</h1>
+            <p>Welcome, ${req.user.username}!</p>
+            <p><a href="/logout">Logout</a></p>
+            <hr>
 
-                <div class="profile-links">
-                    <a href="/bookings" class="btn">Make a Booking</a>
-                    ${req.user.is_admin ? `
-                        <a href="/admin/tables" class="btn admin-btn">Manage Tables (Admin Only)</a>
-                        <a href="/admin/games" class="btn admin-btn">Manage Games (Admin Only)</a>
-                        <a href="/admin/bookings" class="btn admin-btn">View All Bookings (Admin Only)</a>
-                        <a href="/admin/halls">Manage Hall Bookings (Admin Only)</a>
-                    ` : ''}
-                    <a href="/logout" class="btn logout-btn">Logout</a>
-                </div>
+            <section class="profile-section">
+                <h2>Bookings</h2>
+                <ul class="profile-links-list">
+                    <li><a href="/bookings">Make a Booking</a></li>
+                    </ul>
+            </section>
+            <hr>
+
+            ${req.user.is_admin ? `
+                <section class="profile-section admin-section">
+                    <h2>Admin</h2>
+                    <ul class="profile-links-list">
+                        <li><a href="/admin/tables">Manage Tables</a></li>
+                        <li><a href="/admin/games">Manage Games</a></li>
+                        <li><a href="/admin/all-bookings">View All Bookings</a></li>
+                        <li><a href="/admin/halls">Manage Hall Bookings</a></li>
+                    </ul>
+                </section>
+                <hr>
+            ` : ''}
+
             </div>
         </body>
         </html>
@@ -384,17 +396,21 @@ app.get('/admin/halls', ensureAuthenticated, (req, res) => {
 
                 function getNextNTuesdays(n) {
                     const dates = [];
-                    let d = new Date();
-                    d.setHours(0, 0, 0, 0);
-                    let dayOfWeek = d.getDay();
-                    const tuesday = 2;
-                    let daysToAdd = (tuesday - dayOfWeek + 7) % 7;
-                    if (daysToAdd === 0 && dayOfWeek !== tuesday) { daysToAdd = 7; }
-                    let currentTuesday = new Date(d.getTime());
-                    currentTuesday.setDate(d.getDate() + daysToAdd);
+                    let currentDate = new Date(); // Start from the current date
+                    currentDate.setHours(0, 0, 0, 0); // Normalize to the beginning of the day
+
+                    // Find the first upcoming Tuesday
+                    // (2 is Tuesday; 0 is Sunday, 1 is Monday, etc.)
+                    let daysToTuesday = (2 - currentDate.getDay() + 7) % 7;
+                    
+                    // Create the date for the first upcoming Tuesday
+                    let firstTuesday = new Date(currentDate);
+                    firstTuesday.setDate(currentDate.getDate() + daysToTuesday);
+
+                    // Now, add the next N Tuesdays to the array
                     for (let i = 0; i < n; i++) {
-                        const nextTuesday = new Date(currentTuesday.getTime());
-                        nextTuesday.setDate(currentTuesday.getDate() + (i * 7));
+                        const nextTuesday = new Date(firstTuesday);
+                        nextTuesday.setDate(firstTuesday.getDate() + (i * 7)); // Add 7 days for each subsequent Tuesday
                         dates.push(nextTuesday);
                     }
                     return dates;
@@ -414,7 +430,7 @@ app.get('/admin/halls', ensureAuthenticated, (req, res) => {
                         if (!response.ok) {
                             throw new Error(data.message || 'Failed to fetch disabled dates.');
                         }
-                        return data.dates;
+                        return data.disabledDates;
                     } catch (error) {
                         console.error('Error fetching disabled dates:', error);
                         return [];
@@ -502,6 +518,29 @@ app.get('/api/admin/disabled-halls', ensureAuthenticated, (req, res) => {
         const dates = rows.map(row => row.booking_date);
         res.json({ dates });
     });
+});
+
+// GET endpoint to fetch all currently disabled hall dates
+app.get('/api/admin/disabled-halls', ensureAuthenticated, async (req, res) => {
+    // Ensure only admins can view disabled halls
+    if (!req.user || !req.user.is_admin) {
+        return res.status(403).json({ message: 'Forbidden: Admin access required.' });
+    }
+
+    try {
+        const disabledDates = await new Promise((resolve, reject) => {
+            db.all("SELECT booking_date FROM disabled_halls ORDER BY booking_date", [], (err, rows) => {
+                if (err) return reject(err);
+                resolve(rows.map(row => row.booking_date)); // Just return an array of date strings
+            });
+        });
+
+        res.json({ disabledDates });
+
+    } catch (error) {
+        console.error('Error fetching disabled halls:', error);
+        res.status(500).json({ message: 'Failed to fetch disabled halls.', error: error.message });
+    }
 });
 
 // Admin Games Route
@@ -728,6 +767,51 @@ app.get('/admin/bookings', ensureAdmin, async (req, res) => {
     } catch (error) {
         console.error('Error in /admin/bookings route:', error);
         res.status(500).send('Server error loading admin bookings page.');
+    }
+});
+
+// Route for Admin to View All Bookings
+app.get('/admin/all-bookings', ensureAuthenticated, (req, res) => {
+    if (!req.user || !req.user.is_admin) {
+        return res.status(403).send('Forbidden: Admin access required.');
+    }
+    res.sendFile(path.join(__dirname, 'public', 'admin', 'all_bookings.html'));
+});
+
+// API endpoint for Admin to fetch ALL bookings
+app.get('/api/admin/all-bookings', ensureAuthenticated, async (req, res) => {
+    if (!req.user || !req.user.is_admin) {
+        return res.status(403).json({ message: 'Forbidden: Admin access required.' });
+    }
+
+    try {
+        const allBookings = await new Promise((resolve, reject) => {
+            const sql = `
+                SELECT
+                    b.id AS booking_id,
+                    b.booking_date,
+                    t.name AS table_name,
+                    t.hall_name,
+                    g.name AS game_name,
+                    b.player_count,
+                    u.username AS booked_by_username
+                FROM bookings b
+                JOIN tables t ON b.table_id = t.id
+                JOIN users u ON b.booked_by_user_id = u.id
+                LEFT JOIN games g ON b.game_id = g.id
+                ORDER BY b.booking_date DESC, t.name ASC;
+            `;
+            db.all(sql, [], (err, rows) => {
+                if (err) return reject(err);
+                resolve(rows);
+            });
+        });
+
+        res.json({ allBookings });
+
+    } catch (error) {
+        console.error('Error fetching all bookings:', error);
+        res.status(500).json({ message: 'Failed to fetch all bookings.', error: error.message });
     }
 });
 
@@ -1000,26 +1084,34 @@ app.get('/api/tables-with-bookings', ensureAuthenticated, async (req, res) => {
 
     try {
         const tables = await new Promise((resolve, reject) => {
-            // SQL to get all tables and LEFT JOIN with bookings for the specified date
-            // Also join with games and users to get names for display
             const sql = `
                 SELECT
-                    t.id AS table_id,
-                    t.name AS table_name,
+                    t.id,
+                    t.name,
                     t.hall_name,
                     b.id AS booking_id,
                     b.game_id,
-                    g.name AS game_name,
                     b.player_count,
-                    b.booked_by_user_id,
-                    u.username AS booked_by_username
-                FROM tables AS t
-                LEFT JOIN bookings AS b ON t.id = b.table_id AND b.booking_date = ?
-                LEFT JOIN games AS g ON b.game_id = g.id
-                LEFT JOIN users AS u ON b.booked_by_user_id = u.id
-                ORDER BY CAST(t.name as INTEGER);
+                    b.booking_date,
+                    u.id AS booked_by_user_id,
+                    u.username AS booked_by_username,
+                    g.name AS game_name
+                FROM tables t
+                LEFT JOIN bookings b ON t.id = b.table_id AND b.booking_date = ?
+                LEFT JOIN users u ON b.booked_by_user_id = u.id
+                LEFT JOIN games g ON b.game_id = g.id
+                WHERE
+                    NOT EXISTS (
+                        SELECT 1
+                        FROM disabled_halls dh
+                        WHERE t.hall_name = 'Small Hall' AND dh.booking_date = ?
+                    )
+                ORDER BY CAST(t.name AS INTEGER);
             `;
             db.all(sql, [date, date], (err, rows) => {
+                console.log("Server Debug: Error from DB:", err);
+                console.log("Server Debug: Rows received from DB:", rows); // This log should now clearly show id, name, hall_name
+                
                 if (err) reject(err);
                 resolve(rows);
             });
@@ -1027,8 +1119,9 @@ app.get('/api/tables-with-bookings', ensureAuthenticated, async (req, res) => {
 
         // Remap to a more intuitive structure if needed, or send as is
         const mappedTables = tables.map(row => ({
-            id: row.table_id,
-            name: row.table_name,
+            id: row.id, // CORRECTED from row.table_id
+            name: row.name, // CORRECTED from row.table_name
+            hall_name: row.hall_name, // ADDED THIS LINE
             booking_id: row.booking_id, // Null if not booked on this date
             game_id: row.game_id,
             game_name: row.game_name,

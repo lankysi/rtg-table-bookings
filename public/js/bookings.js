@@ -153,11 +153,20 @@ async function fetchTablesForDate(date) {
     
     try {
         const response = await fetch('/api/tables-with-bookings?date=' + formattedDate);
-        const data = await response.json();
 
+        // --- IMPORTANT: CHECK response.ok *BEFORE* trying to parse JSON ---
         if (!response.ok) {
-            throw new Error(data.message || 'Failed to fetch tables.');
+            // Try to parse the error message from the server, but handle if it's not JSON
+            const errorData = await response.json().catch(() => ({ message: 'Server error or invalid response format.' }));
+            throw new Error(errorData.message || 'Failed to fetch tables: Server returned an error.');
         }
+
+        const data = await response.json(); // This will now only run if response.ok is true
+
+        // --- Your DEBUG CONSOLE.LOGS (now in a safer position) ---
+        console.log("Client Debug: Data received from server:", data);
+        console.log("Client Debug: Tables array in data:", data.tables);
+        // --- END DEBUG CONSOLE.LOGS ---
 
         largeHallGrid.innerHTML = ''; // Clear previous loading message
         
