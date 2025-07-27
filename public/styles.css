@@ -13,4 +13,120 @@ body {
     border-radius: 8px;
     box-shadow: 0 2px 4px rgba(0,0,0,0.1);
 }
-/* You can add more styles for your cards, forms etc. later */
+
+/* Ensure the main container has a max-width and is centered */
+.container {
+    max-width: 1200px; /* Or a suitable max-width for your design */
+    margin: 0 auto;
+    padding: 20px; /* Add some padding on smaller screens */
+}
+
+/* Make headers and text scale a bit if needed */
+h1 { font-size: 2.2em; }
+h2 { font-size: 1.8em; }
+h3 { font-size: 1.4em; }
+
+/* Styles for the hall sections and table display containers */
+.hall-section {
+    margin-bottom: 30px;
+}
+
+/* Assuming a container that holds your table cards, e.g., a flexbox grid */
+/* Make it a flex container that allows wrapping */
+.hall-tables-grid, /* If you have a specific class for the grid in a hall */
+.tables-display { /* Or a more general class if you use one */
+    display: flex;
+    flex-wrap: wrap; /* Allow items to wrap to the next line */
+    gap: 20px; /* Space between table cards */
+    justify-content: center; /* Center cards when they don't fill a full row */
+}
+
+/* Styles for individual table cards */
+.table-card {
+    background-color: #f9f9f9;
+    border: 1px solid #ddd;
+    border-radius: 8px;
+    padding: 15px;
+    box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+    display: flex; /* Make card content a flex container */
+    flex-direction: column; /* Stack content vertically */
+    flex: 1 1 calc(33.333% - 20px); /* Default: 3 cards per row, accounting for gap */
+    min-width: 280px; /* Minimum width before breaking to a new line */
+    box-sizing: border-box; /* Include padding and border in the element's total width */
+}
+
+/* Ensure form elements within table cards are full width */
+.table-card select,
+.table-card input[type="number"],
+.table-card button {
+    width: 100%; /* Full width */
+    padding: 10px;
+    margin-top: 10px; /* Space between elements */
+    border: 1px solid #ccc;
+    border-radius: 4px;
+    box-sizing: border-box;
+}
+
+/* Style for the booking button specifically */
+.table-card button.book-button {
+    background-color: #4CAF50;
+    color: white;
+    cursor: pointer;
+    font-size: 1em;
+}
+
+.table-card button.book-button:hover {
+    background-color: #45a049;
+}
+
+/* Style for booked tables */
+.table-card.booked {
+    background-color: #e0e0e0;
+    color: #555;
+}
+.table-card.booked .book-button {
+    background-color: #9e9e9e;
+    cursor: not-allowed;
+}
+
+/* --- Media Queries for Smaller Screens --- */
+
+/* For screens smaller than 768px (e.g., tablets in portrait, large phones) */
+@media (max-width: 768px) {
+    .container {
+        padding: 15px;
+    }
+
+    h1 { font-size: 2em; }
+    h2 { font-size: 1.6em; }
+    h3 { font-size: 1.3em; }
+
+    /* Adjust table cards to 2 per row */
+    .table-card {
+        flex: 1 1 calc(50% - 20px); /* 2 cards per row, accounting for gap */
+    }
+}
+
+/* For screens smaller than 480px (e.g., most mobile phones) */
+@media (max-width: 480px) {
+    .container {
+        padding: 10px;
+    }
+
+    h1 { font-size: 1.8em; }
+    h2 { font-size: 1.4em; }
+    h3 { font-size: 1.2em; }
+
+    /* Adjust table cards to 1 per row */
+    .table-card {
+        flex: 1 1 100%; /* 1 card per row */
+        margin-bottom: 15px; /* Add some space between stacked cards */
+    }
+
+    /* Ensure date select is full width */
+    #dateSelect { /* Assuming your main date selector has this ID */
+        width: 100%;
+        box-sizing: border-box;
+        padding: 10px;
+    }
+}
