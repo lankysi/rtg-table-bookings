@@ -155,29 +155,29 @@ async function fetchAndDisplayTables(date) {
             const tableDiv = document.createElement('div');
             tableDiv.classList.add('table-item');
 
-            let statusClass = 'available';
-            let bookingInfo = '';
-
             if (table.booking_id) {
-                statusClass = 'booked';
-                bookingInfo = `
+                tableDiv.classList.add('booked');
+                let bookingInfo = `
                     <span class="booking-status">Booked</span>
                     <br>Game: ${getGameNameById(table.game_id) || 'N/A'}
                     <br>Players: ${table.player_count}
                 `;
                 if (currentUser && table.booked_by_user_id === currentUser.id) {
-                    statusClass += ' my-booking';
+                    tableDiv.classList.add('my-booking');
                     bookingInfo += '<br>(Your Booking)';
                 }
+                tableDiv.innerHTML = `
+                    <h4>${table.table_name}</h4>
+                    ${bookingInfo}
+                `;
             } else {
+                tableDiv.classList.add('available');
                 tableDiv.onclick = () => selectTableForBooking(table.table_id, table.table_name, date);
+                tableDiv.innerHTML = `
+                    <h4>${table.table_name}</h4>
+                    <span class="booking-status">Available</span>
+                `;
             }
-
-            tableDiv.classList.add(statusClass);
-            tableDiv.innerHTML = `
-                <h4>${table.table_name}</h4>
-                ${bookingInfo}
-            `;
 
             if (table.hall_name === 'Large Hall') {
                 largeHallGrid.appendChild(tableDiv);
