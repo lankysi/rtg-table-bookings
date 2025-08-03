@@ -1,0 +1,39 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Login - Table Booking</title>
+    <link rel="stylesheet" href="/styles.css"> </head>
+<body>
+    <div class="container welcome-page">
+        <h1>Welcome to Table Bookings!</h1>
+        <p>Please log in using your Discord account to continue.</p>
+        
+        <div id="login-message" class="feedback-message" style="display: none;"></div>
+
+        <p class="login-option">
+            <a href="/auth/discord" class="button discord-button">Login with Discord</a>
+        </p>
+    </div>
+
+    <script>
+        // Simple client-side script to display messages (e.g., from server redirects)
+        document.addEventListener('DOMContentLoaded', () => {
+            const urlParams = new URLSearchParams(window.location.search);
+            const message = urlParams.get('message');
+            const messageType = urlParams.get('type') || 'error'; 
+
+            const loginMessageDiv = document.getElementById('login-message');
+            if (message && loginMessageDiv) {
+                loginMessageDiv.textContent = message;
+                loginMessageDiv.className = `feedback-message ${messageType}`;
+                loginMessageDiv.style.display = 'block';
+                setTimeout(() => {
+                    loginMessageDiv.style.display = 'none';
+                }, 5000);
+            }
+        });
+    </script>
+</body>
+</html>

@@ -3,52 +3,30 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Admin - All Bookings</title>
+    <title>All Bookings - Admin</title>
     <link rel="stylesheet" href="/styles.css">
-    <style>
-        /* Basic styling for the bookings table for readability */
-        #allBookingsTable {
-            width: 100%;
-            border-collapse: collapse;
-            margin-top: 20px;
-        }
-        #allBookingsTable th,
-        #allBookingsTable td {
-            border: 1px solid #ddd;
-            padding: 8px;
-            text-align: left;
-        }
-        #allBookingsTable th {
-            background-color: #f2f2f2;
-            font-weight: bold;
-        }
-        .message-container {
-            margin-top: 10px;
-            padding: 10px;
-            border-radius: 5px;
-        }
-        .message.info {
-            background-color: #e7f3fe;
-            color: #2196F3;
-        }
-        .message.error {
-            background-color: #fdd;
-            color: #f44336;
-        }
-    </style>
 </head>
 <body>
     <div class="container">
-        <h1>All Bookings</h1>
-        <p><a href="/profile">Back to Profile</a></p>
+        <header class="header">
+            <h1>Admin: All Upcoming Bookings</h1>
+            <nav>
+                <a href="/profile">My Profile</a>
+                <a href="/admin">Admin Home</a>
+                <a href="/logout">Logout</a>
+            </nav>
+        </header>
 
-        <div id="messages" class="message-container"></div>
+        <div id="feedback-message" class="feedback-message" style="display: none;"></div>
 
-        <div id="bookingsListContainer">
-            <p>Loading bookings...</p>
+        <section class="admin-section">
+            <div id="allBookingsList" class="bookings-list">
+                <p>Loading all bookings...</p>
             </div>
+        </section>
+
     </div>
 
-    <script src="/js/admin_all_bookings.js"></script>
+    <script src="/admin/js/all_bookings.js"></script>
 </body>
 </html>

@@ -1,0 +1,55 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Manage Games - Admin</title>
+    <link rel="stylesheet" href="/styles.css"> </head>
+<body>
+    <div class="container">
+        <header class="header">
+            <h1>Admin: Manage Games</h1>
+            <nav>
+                <a href="/profile">My Profile</a>
+                <a href="/admin">Admin Home</a>
+                <a href="/logout">Logout</a>
+            </nav>
+        </header>
+
+        <div id="feedback-message" class="feedback-message" style="display: none;"></div>
+
+        <section class="admin-section">
+            <h2>Existing Games</h2>
+            <div id="gameList" class="game-list">
+                <p>Loading games...</p>
+            </div>
+        </section>
+
+        <section class="admin-section">
+            <h2>Add New Game</h2>
+            <form id="addGameForm" class="form-card">
+                <div class="form-group">
+                    <label for="gameName">Game Name:</label>
+                    <input type="text" id="gameName" name="gameName" required>
+                </div>
+                <button type="submit" class="button">Add Game</button>
+            </form>
+        </section>
+
+        <section id="editGameSection" class="admin-section" style="display: none;">
+            <h2>Edit Game <span id="editingGameTitle"></span></h2>
+            <form id="editGameForm" class="form-card">
+                <input type="hidden" id="editGameId" name="editGameId">
+                <div class="form-group">
+                    <label for="editGameName">Game Name:</label>
+                    <input type="text" id="editGameName" name="editGameName" required>
+                </div>
+                <button type="submit" class="button">Update Game</button>
+                <button type="button" class="button secondary-button" id="cancelEditBtn">Cancel</button>
+            </form>
+        </section>
+    </div>
+
+    <script src="/admin/js/manage_games.js"></script>
+</body>
+</html>

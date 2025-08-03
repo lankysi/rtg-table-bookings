@@ -1,0 +1,67 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Manage Tables - Admin</title>
+    <link rel="stylesheet" href="/styles.css">
+</head>
+<body>
+    <div class="container">
+        <header class="header">
+            <h1>Admin: Manage Tables</h1>
+            <nav>
+                <a href="/profile">My Profile</a>
+                <a href="/admin">Admin Home</a>
+                <a href="/logout">Logout</a>
+            </nav>
+        </header>
+
+        <div id="feedback-message" class="feedback-message" style="display: none;"></div>
+
+        <section class="admin-section">
+            <h2>Existing Tables</h2>
+            <div id="tableList" class="table-list">
+                <p>Loading tables...</p>
+            </div>
+        </section>
+
+        <section class="admin-section">
+            <h2>Add New Table</h2>
+            <form id="addTableForm" class="form-card">
+                <div class="form-group">
+                    <label for="tableName">Table Name:</label>
+                    <input type="text" id="tableName" name="tableName" required>
+                </div>
+                <div class="form-group">
+                    <label for="tableHall">Hall:</label>
+                    <select id="tableHall" name="tableHall" required>
+                        <option value="">Loading halls...</option>
+                    </select>
+                </div>
+                <button type="submit" class="button">Add Table</button>
+            </form>
+        </section>
+
+        <section id="editTableSection" class="admin-section" style="display: none;">
+            <h2>Edit Table <span id="editingTableTitle"></span></h2>
+            <form id="editTableForm" class="form-card">
+                <input type="hidden" id="editTableId" name="editTableId">
+                <div class="form-group">
+                    <label for="editTableName">Table Name:</label>
+                    <input type="text" id="editTableName" name="editTableName" required>
+                </div>
+                <div class="form-group">
+                    <label for="editTableHall">Hall:</label>
+                    <select id="editTableHall" name="editTableHall" required>
+                        </select>
+                </div>
+                <button type="submit" class="button">Update Table</button>
+                <button type="button" class="button secondary-button" id="cancelEditBtn">Cancel</button>
+            </form>
+        </section>
+    </div>
+
+    <script src="/admin/js/manage_tables.js"></script>
+</body>
+</html>
