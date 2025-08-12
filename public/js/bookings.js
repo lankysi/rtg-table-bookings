@@ -159,7 +159,8 @@ async function fetchAndDisplayTables(date) {
         // Update the date display
         const currentDateDisplay = document.getElementById('currentDateDisplay');
         if (currentDateDisplay) {
-            currentDateDisplay.innerText = date;
+            const [year, month, day] = date.split('-');
+            currentDateDisplay.innerText = `${day}-${month}-${year}`;
         }
 
     } catch (error) {
@@ -252,7 +253,7 @@ async function fetchAndDisplayMyBookings() {
             const bookingDiv = document.createElement('div');
             bookingDiv.classList.add('booking-item');
             bookingDiv.innerHTML = `
-                <p><strong>Date:</strong> ${booking.booking_date}</p>
+                <p><strong>Date:</strong> ${new Date(booking.booking_date).toLocaleDateString('en-GB')}</p>
                 <p><strong>Table:</strong> ${booking.table_name} (${booking.hall_name})</p>
                 <p><strong>Game:</strong> ${booking.game_name || 'Not specified'}</p>
                 <p><strong>Players:</strong> ${booking.player_count}</p>

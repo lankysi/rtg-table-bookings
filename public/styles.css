@@ -302,3 +302,8 @@ select {
 .text-center {
     text-align: center;
 }
+
+.profile-links ul {
+    list-style-type: none;
+    padding: 0;
+}
