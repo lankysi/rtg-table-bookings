@@ -1,140 +1,117 @@
 // public/js/bookings.js
 
-// 1. Declare gameOptions and currentUser at the top-level scope
-//    so they are accessible throughout the script after being populated.
+let tablesData = [];
 let currentUser = null;
-let gameOptions = [];
-let tablesData = {}; // To store fetched table availability data
+let selectedTable = null;
+let selectedDate = new Date().toISOString().split('T')[0];
 
-// Utility function to fetch JSON data
-async function fetchData(url, options = {}) {
-    const response = await fetch(url, options);
-    if (!response.ok) {
-        const errorText = await response.text(); // Get raw text to help debug
-        console.error(`Fetch error from ${url}:`, response.status, errorText);
-        let message = `HTTP error! status: ${response.status}`;
-        try {
-            const errorJson = JSON.parse(errorText);
-            if (errorJson.message) {
-                message = errorJson.message;
-            }
-        } catch (e) {
-            // Not a JSON error message, use the raw text or default
-            message = errorText || message;
-        }
-        throw new Error(message);
-    }
-    return response.json();
-}
-
-// Function to initialize dynamic data and then render page
-async function initializeBookingsPage() {
-    try {
-        // Fetch current user data
-        currentUser = await fetchData('/api/current-user');
-        console.log('Current User Data:', currentUser);
-
-        // Fetch game options
-        const gamesData = await fetchData('/api/games');
-        gameOptions = gamesData.games; // Assign to the top-level gameOptions
-        console.log('Game Options:', gameOptions);
-
-        // --- Now that data is loaded, populate the game select dropdown ---
-        const gameSelect = document.getElementById('gameSelect');
-        if (gameSelect) {
-            if (gameOptions && Array.isArray(gameOptions)) {
-                gameOptions.forEach(function(game) {
-                    const option = document.createElement('option');
-                    option.value = game.id;
-                    option.innerText = game.name;
-                    gameSelect.appendChild(option);
-                });
-            } else {
-                console.error("Game options not loaded correctly or are empty.");
-            }
-        } else {
-             console.error("gameSelect element not found.");
-        }
-
-        // Call other main rendering functions here, ensuring they use the now-populated gameOptions/currentUser
-        populateTuesdaysDropdown();
-        // Get the initial selected date from the dropdown, or default to the first Tuesday
-        const initialDate = document.getElementById('tuesdaySelect').value || getNextNTuesdays(1)[0].value;
-        fetchAndDisplayTables(initialDate);
-        fetchAndDisplayMyBookings();
-
-    } catch (error) {
-        console.error("Error initializing bookings page:", error);
-        showMessage(`Failed to load essential booking data: ${error.message}. Please try again.`, 'error');
-        // Disable booking functionality if essential data can't be loaded
-        const bookingForm = document.getElementById('bookingForm');
-        if (bookingForm) {
-            document.getElementById('bookingForm').style.display = 'none';
-        }
-    }
-}
-
-// --- Event Listener to start the process when the DOM is ready ---
-document.addEventListener('DOMContentLoaded', () => {
-    initializeBookingsPage();
-});
-
-// --- Helper Functions ---
-
-function getNextNTuesdays(n) {
-    const today = new Date();
-    const tuesdays = [];
-    let daysToAdd = (2 - today.getDay() + 7) % 7; // Days until next Tuesday (2 is Tuesday)
-
-    // If today is Tuesday, check if it's past 6 PM. If so, move to next Tuesday.
-    if (daysToAdd === 0 && today.getDay() === 2) {
-        const currentHour = today.getHours();
-        if (currentHour >= 18) { // Assuming bookings are for 6 PM (18:00) onwards
-             daysToAdd = 7; // Move to next Tuesday
-        }
-    }
-
-    for (let i = 0; i < n; i++) {
-        const nextTuesday = new Date(today);
-        nextTuesday.setDate(today.getDate() + daysToAdd + (i * 7));
-        tuesdays.push({
-            date: nextTuesday,
-            value: nextTuesday.toISOString().split('T')[0], // YYYY-MM-DD
-            text: nextTuesday.toLocaleDateString('en-US', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })
+document.addEventListener('DOMContentLoaded', async () => {
+    // Set initial date in the date picker
+    const datePicker = document.getElementById('datePicker');
+    if (datePicker) {
+        datePicker.value = selectedDate;
+        datePicker.addEventListener('change', (e) => {
+            selectedDate = e.target.value;
+            initializeBookingsPage();
         });
     }
-    return tuesdays;
-}
 
-function populateTuesdaysDropdown() {
-    const tuesdaySelect = document.getElementById('tuesdaySelect');
-    if (!tuesdaySelect) {
-        console.error("Tuesday select dropdown not found.");
-        return;
+    // Set up event listeners for the booking form
+    setupBookingForm();
+    await initializeBookingsPage();
+});
+
+// Utility function to make API calls
+async function fetchData(url, options = {}) {
+    const response = await fetch(url, options);
+    const contentType = response.headers.get('content-type');
+    let responseData;
+
+    if (contentType && contentType.includes('application/json')) {
+        responseData = await response.json();
+    } else {
+        responseData = await response.text();
     }
 
-    const nextTuesdays = getNextNTuesdays(4); // Get next 4 Tuesdays
-
-    tuesdaySelect.innerHTML = ''; // Clear existing options
-    nextTuesdays.forEach(tue => {
-        const option = document.createElement('option');
-        option.value = tue.value;
-        option.innerText = tue.text;
-        tuesdaySelect.appendChild(option);
-    });
-
-    // Set current date display initially
-    document.getElementById('currentDateDisplay').innerText = nextTuesdays[0].text;
-
-    // Add event listener for date change
-    tuesdaySelect.addEventListener('change', (event) => {
-        const selectedDate = event.target.value;
-        document.getElementById('currentDateDisplay').innerText = event.target.options[event.target.selectedIndex].text;
-        fetchAndDisplayTables(selectedDate);
-    });
+    if (!response.ok) {
+        console.error('Fetch error from ' + url + ':', response.status, responseData);
+        throw new Error(responseData.message || responseData || 'An unknown error occurred.');
+    }
+    return responseData;
 }
 
-// Function to fetch and display table availability
+// Utility function to display feedback messages
+function showMessage(message, type = 'info') {
+    const feedbackMessage = document.getElementById('feedback-message');
+    if (feedbackMessage) {
+        feedbackMessage.innerText = message;
+        feedbackMessage.className = `feedback-message ${type}`;
+        feedbackMessage.style.display = 'block';
+        setTimeout(() => {
+            feedbackMessage.style.display = 'none';
+        }, 5000);
+    }
+}
+
+// Main function to initialize the bookings page
+async function initializeBookingsPage() {
+    try {
+        await fetchCurrentUser();
+        await fetchGamesAndPopulateDropdown();
+        await fetchAndDisplayTables(selectedDate);
+        await fetchAndDisplayMyBookings();
+    } catch (error) {
+        console.error('Error initializing bookings page:', error);
+        showMessage(`Failed to initialize page: ${error.message}`, 'error');
+    }
+}
+
+// Fetch the current user details
+async function fetchCurrentUser() {
+    try {
+        currentUser = await fetchData('/api/current-user');
+    } catch (error) {
+        console.error('Failed to fetch current user:', error);
+        currentUser = null;
+    }
+}
+
+// Fetch games and populate the dropdown in the booking form
+async function fetchGamesAndPopulateDropdown() {
+    const gameSelect = document.getElementById('gameSelect');
+    if (!gameSelect) return;
+
+    try {
+        const games = await fetchData('/api/games');
+        if (!games || !games.games || games.games.length === 0) {
+            gameSelect.innerHTML = '<option value="">No games found</option>';
+            return;
+        }
+
+        gameSelect.innerHTML = '<option value="">Select a game (optional)</option>';
+
+        games.games.forEach(game => {
+            const option = document.createElement('option');
+            option.value = game.id;
+            option.innerText = game.name;
+            gameSelect.appendChild(option);
+        });
+
+    } catch (error) {
+        console.error('Error fetching games for dropdown:', error);
+        gameSelect.innerHTML = '<option value="">Error loading games</option>';
+    }
+}
+
+// Helper to get game name by ID
+function getGameNameById(gameId) {
+    const gameSelect = document.getElementById('gameSelect');
+    if (!gameSelect) return null;
+    const option = gameSelect.querySelector(`option[value="${gameId}"]`);
+    return option ? option.innerText : null;
+}
+
+// Fetch tables and display them on the page
 async function fetchAndDisplayTables(date) {
     try {
         const response = await fetchData(`/api/tables/availability?date=${date}`);
@@ -191,66 +168,66 @@ async function fetchAndDisplayTables(date) {
     }
 }
 
-// Helper to get game name by ID (used in fetchAndDisplayTables)
-function getGameNameById(gameId) {
-    const game = gameOptions.find(g => g.id === gameId);
-    return game ? game.name : 'Unknown Game';
+// Function to handle selecting a table
+function selectTableForBooking(tableId, tableName, date) {
+    selectedTable = { id: tableId, name: tableName, date: date };
+    const bookingDetails = document.getElementById('bookingDetails');
+    bookingDetails.innerHTML = `
+        <h3>Booking Details</h3>
+        <p>You have selected table **${tableName}** for **${date}**.</p>
+    `;
+    document.getElementById('bookingFormSection').style.display = 'block';
+    showMessage('Please fill in the details below to confirm your booking.', 'info');
 }
 
-// Function to handle selecting a table for booking
-function selectTableForBooking(tableId, tableName, bookingDate) {
-    document.getElementById('selectedTableId').value = tableId;
-    document.getElementById('selectedTableName').innerText = tableName;
-    document.getElementById('actualSelectedBookingDate').value = bookingDate; // Store actual date
-    document.getElementById('selectedBookingDateDisplay').innerText = document.getElementById('tuesdaySelect').options[document.getElementById('tuesdaySelect').selectedIndex].text; // Display friendly date
+// Function to set up the booking form event listener
+function setupBookingForm() {
+    const form = document.getElementById('bookingForm');
+    if (!form) return;
 
-    document.getElementById('bookingForm').style.display = 'block';
-    showMessage(`Selected ${tableName} for booking on ${document.getElementById('selectedBookingDateDisplay').innerText}.`, 'info');
+    form.addEventListener('submit', async (event) => {
+        event.preventDefault();
+
+        if (!selectedTable) {
+            showMessage('Please select a table first.', 'error');
+            return;
+        }
+
+        const player_count = document.getElementById('playerCount').value;
+        const game_id = document.getElementById('gameSelect').value || null;
+
+        if (!player_count) {
+            showMessage('Number of players is required.', 'error');
+            return;
+        }
+
+        const bookingData = {
+            table_id: selectedTable.id,
+            date: selectedTable.date,
+            game_id: game_id,
+            player_count: player_count
+        };
+
+        try {
+            const response = await fetchData('/api/bookings', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(bookingData)
+            });
+
+            showMessage(response.message, 'success');
+            form.reset();
+            document.getElementById('bookingFormSection').style.display = 'none';
+            selectedTable = null;
+            initializeBookingsPage();
+        } catch (error) {
+            console.error('Error confirming booking:', error);
+            showMessage(`Error confirming booking: ${error.message}`, 'error');
+        }
+    });
 }
 
-
-// Event listener for the booking confirmation form
-document.getElementById('confirmBookingForm').addEventListener('submit', async (event) => {
-    event.preventDefault(); // Prevent default form submission
-
-    const tableId = document.getElementById('selectedTableId').value;
-    const bookingDate = document.getElementById('actualSelectedBookingDate').value;
-    const gameId = document.getElementById('gameSelect').value;
-    const playerCount = document.getElementById('playerCount').value;
-
-    try {
-        const response = await fetchData('/api/bookings', {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json'
-            },
-            body: JSON.stringify({
-                tableId: parseInt(tableId),
-                bookingDate: bookingDate,
-                gameId: parseInt(gameId),
-                playerCount: parseInt(playerCount)
-            })
-        });
-
-        showMessage(response.message, 'success');
-        document.getElementById('bookingForm').style.display = 'none'; // Hide form on success
-        // Refresh tables to show new booking
-        fetchAndDisplayTables(bookingDate);
-        fetchAndDisplayMyBookings(); // Refresh user's own bookings
-
-    } catch (error) {
-        console.error('Error confirming booking:', error);
-        showMessage(`Booking failed: ${error.message}`, 'error');
-    }
-});
-
-// Event listener for cancelling the booking form
-document.getElementById('cancelFormBtn').addEventListener('click', () => {
-    document.getElementById('bookingForm').style.display = 'none';
-    showMessage('Booking cancelled by user.', 'info');
-});
-
-// Function to fetch and display the user's current bookings
+// Fetch and display the current user's bookings
 async function fetchAndDisplayMyBookings() {
     const myBookingsList = document.getElementById('myBookingsList');
     if (!myBookingsList) return;
@@ -288,16 +265,19 @@ async function fetchAndDisplayMyBookings() {
     }
 }
 
-// Function to display messages to the user
-function showMessage(message, type = 'info') {
-    const feedbackMessage = document.getElementById('feedback-message');
-    if (feedbackMessage) {
-        feedbackMessage.innerText = message;
-        // Apply a class for styling (e.g., 'success', 'error', 'info')
-        feedbackMessage.className = `feedback-message ${type}`;
-        feedbackMessage.style.display = 'block'; // Make it visible
-        setTimeout(() => {
-            feedbackMessage.style.display = 'none'; // Hide after some time
-        }, 5000);
+// Function to handle canceling a booking
+async function cancelBooking(event) {
+    const bookingId = event.target.dataset.bookingId;
+    if (confirm('Are you sure you want to cancel this booking?')) {
+        try {
+            const response = await fetchData(`/api/bookings/${bookingId}`, {
+                method: 'DELETE'
+            });
+            showMessage(response.message, 'success');
+            initializeBookingsPage();
+        } catch (error) {
+            console.error('Error canceling booking:', error);
+            showMessage(`Error canceling booking: ${error.message}`, 'error');
+        }
     }
 }
