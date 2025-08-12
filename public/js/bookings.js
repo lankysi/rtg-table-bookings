@@ -3,21 +3,14 @@
 let tablesData = [];
 let currentUser = null;
 let selectedTable = null;
-let selectedDate = new Date().toISOString().split('T')[0];
 
 document.addEventListener('DOMContentLoaded', async () => {
-    // Set initial date in the date picker
-    const datePicker = document.getElementById('datePicker');
-    if (datePicker) {
-        datePicker.value = selectedDate;
-        datePicker.addEventListener('change', (e) => {
-            selectedDate = e.target.value;
-            initializeBookingsPage();
-        });
-    }
-
-    // Set up event listeners for the booking form
+    // Set up the date selector dropdown
+    await populateTuesdayDropdown();
+    
+    // Set up the form listener
     setupBookingForm();
+
     await initializeBookingsPage();
 });
 
@@ -58,7 +51,7 @@ async function initializeBookingsPage() {
     try {
         await fetchCurrentUser();
         await fetchGamesAndPopulateDropdown();
-        await fetchAndDisplayTables(selectedDate);
+        await fetchAndDisplayTables(document.getElementById('tuesdaySelect').value);
         await fetchAndDisplayMyBookings();
     } catch (error) {
         console.error('Error initializing bookings page:', error);
@@ -111,7 +104,7 @@ function getGameNameById(gameId) {
     return option ? option.innerText : null;
 }
 
-// Fetch tables and display them on the page
+// Fetch and display tables
 async function fetchAndDisplayTables(date) {
     try {
         const response = await fetchData(`/api/tables/availability?date=${date}`);
@@ -162,6 +155,13 @@ async function fetchAndDisplayTables(date) {
                 smallHallGrid.appendChild(tableDiv);
             }
         });
+
+        // Update the date display
+        const currentDateDisplay = document.getElementById('currentDateDisplay');
+        if (currentDateDisplay) {
+            currentDateDisplay.innerText = date;
+        }
+
     } catch (error) {
         console.error('Error fetching tables:', error);
         showMessage(`Failed to load tables: ${error.message}. Please try again.`, 'error');
@@ -171,41 +171,41 @@ async function fetchAndDisplayTables(date) {
 // Function to handle selecting a table
 function selectTableForBooking(tableId, tableName, date) {
     selectedTable = { id: tableId, name: tableName, date: date };
-    const bookingDetails = document.getElementById('bookingDetails');
-    bookingDetails.innerHTML = `
-        <h3>Booking Details</h3>
-        <p>You have selected table **${tableName}** for **${date}**.</p>
-    `;
-    document.getElementById('bookingFormSection').style.display = 'block';
+    
+    // Update the booking form with selected table details
+    document.getElementById('selectedTableName').innerText = tableName;
+    document.getElementById('selectedBookingDateDisplay').innerText = date;
+    document.getElementById('selectedTableId').value = tableId;
+    document.getElementById('actualSelectedBookingDate').value = date;
+
+    document.getElementById('bookingForm').style.display = 'block';
     showMessage('Please fill in the details below to confirm your booking.', 'info');
 }
 
 // Function to set up the booking form event listener
 function setupBookingForm() {
-    const form = document.getElementById('bookingForm');
-    if (!form) return;
+    const form = document.getElementById('confirmBookingForm');
+    const cancelBtn = document.getElementById('cancelFormBtn');
+    if (!form || !cancelBtn) return;
 
     form.addEventListener('submit', async (event) => {
         event.preventDefault();
 
-        if (!selectedTable) {
-            showMessage('Please select a table first.', 'error');
-            return;
-        }
+        const tableId = document.getElementById('selectedTableId').value;
+        const date = document.getElementById('actualSelectedBookingDate').value;
+        const gameId = document.getElementById('gameSelect').value || null;
+        const playerCount = document.getElementById('playerCount').value;
 
-        const player_count = document.getElementById('playerCount').value;
-        const game_id = document.getElementById('gameSelect').value || null;
-
-        if (!player_count) {
-            showMessage('Number of players is required.', 'error');
+        if (!tableId || !date || !playerCount) {
+            showMessage('All fields are required.', 'error');
             return;
         }
 
         const bookingData = {
-            table_id: selectedTable.id,
-            date: selectedTable.date,
-            game_id: game_id,
-            player_count: player_count
+            table_id: tableId,
+            date: date,
+            game_id: gameId,
+            player_count: playerCount
         };
 
         try {
@@ -217,13 +217,19 @@ function setupBookingForm() {
 
             showMessage(response.message, 'success');
             form.reset();
-            document.getElementById('bookingFormSection').style.display = 'none';
+            document.getElementById('bookingForm').style.display = 'none';
             selectedTable = null;
             initializeBookingsPage();
         } catch (error) {
             console.error('Error confirming booking:', error);
             showMessage(`Error confirming booking: ${error.message}`, 'error');
         }
+    });
+
+    cancelBtn.addEventListener('click', () => {
+        document.getElementById('confirmBookingForm').reset();
+        document.getElementById('bookingForm').style.display = 'none';
+        selectedTable = null;
     });
 }
 
@@ -280,4 +286,37 @@ async function cancelBooking(event) {
             showMessage(`Error canceling booking: ${error.message}`, 'error');
         }
     }
+}
+
+// Function to find the next four Tuesdays and populate the dropdown
+async function populateTuesdayDropdown() {
+    const tuesdaySelect = document.getElementById('tuesdaySelect');
+    if (!tuesdaySelect) return;
+
+    // Clear existing options
+    tuesdaySelect.innerHTML = '';
+
+    const today = new Date();
+    const options = [];
+
+    // Find the next Tuesday (or today if it's Tuesday)
+    let nextTuesday = new Date(today);
+    nextTuesday.setDate(today.getDate() + (2 + 7 - today.getDay()) % 7);
+
+    // Populate the dropdown with the next 4 Tuesdays
+    for (let i = 0; i < 4; i++) {
+        const dateString = nextTuesday.toISOString().split('T')[0];
+        const option = document.createElement('option');
+        option.value = dateString;
+        option.innerText = new Intl.DateTimeFormat('en-GB', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' }).format(nextTuesday);
+        options.push(option);
+        nextTuesday.setDate(nextTuesday.getDate() + 7);
+    }
+    
+    options.forEach(option => tuesdaySelect.appendChild(option));
+
+    // Add event listener to the dropdown
+    tuesdaySelect.addEventListener('change', () => {
+        initializeBookingsPage();
+    });
 }

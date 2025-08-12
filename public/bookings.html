@@ -1,47 +1,54 @@
-<main class="container">
-    <div class="header-container">
-        <h2>Book a Table</h2>
-        <a href="/profile" class="button secondary-button">Back to Profile</a>
-    </div>
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Book a Table</title>
+    <link rel="stylesheet" href="/styles.css">
+</head>
+<body>
+    <div class="container">
+        <h1>Book a Table</h1>
+        <p><a href="/profile">Back to Profile</a></p>
 
-    <p>Select a date and click on an available table to book it.</p>
-    <div class="booking-controls">
-        <label for="datePicker">Booking Date:</label>
-        <input type="date" id="datePicker" name="datePicker">
-    </div>
-
-    <div id="feedback-message" class="feedback-message"></div>
-
-    <div id="bookingDetails">
+        <h2 style="margin-top: 30px;">Available Tables for <span id="currentDateDisplay">Loading...</span></h2>
+        <div class="date-navigation">
+            <select id="tuesdaySelect"></select>
         </div>
 
-    <div id="bookingFormSection" style="display: none;">
-        <form id="bookingForm" class="booking-form">
-            <div class="form-group">
-                <label for="gameSelect">Game (optional):</label>
-                <select id="gameSelect" name="gameSelect"></select>
-            </div>
-            <div class="form-group">
-                <label for="playerCount">Number of Players:</label>
-                <input type="number" id="playerCount" name="playerCount" min="1" required>
-            </div>
-            <button type="submit" class="button primary-button">Confirm Booking</button>
-        </form>
+        <h2 style="margin-top: 30px;">Large Hall</h2>
+        <div id="largeHallGrid" class="table-grid"></div>
+
+        <h2 style="margin-top: 30px;">Small Hall</h2>
+        <div id="smallHallGrid" class="table-grid"></div>
+
+        <div id="bookingForm" style="display: none; margin-top: 30px; border: 1px solid #eee; padding: 20px; border-radius: 8px; background-color: #f9f9f9;">
+            <h3>Confirm Your Booking</h3>
+            <p>Booking Table: <strong id="selectedTableName"></strong> on <strong id="selectedBookingDateDisplay"></strong></p>
+            <form id="confirmBookingForm">
+                <input type="hidden" id="selectedTableId">
+                <input type="hidden" id="actualSelectedBookingDate">
+                <div style="margin-bottom: 15px;">
+                    <label for="gameSelect">Game:</label>
+                    <select id="gameSelect" required style="width: 100%; padding: 8px; border: 1px solid #ccc; border-radius: 4px;"></select>
+                </div>
+                <div style="margin-bottom: 15px;">
+                    <label for="playerCount">Number of Players:</label>
+                    <input type="number" id="playerCount" min="1" value="1" required style="width: 100%; padding: 8px; border: 1px solid #ccc; border-radius: 4px;">
+                </div>
+                <button type="submit" style="padding: 10px 20px; background-color: #007bff; color: white; border: none; border-radius: 5px; cursor: pointer;">Confirm Booking</button>
+                <button type="button" id="cancelFormBtn" style="padding: 10px 20px; background-color: #ccc; color: black; border: none; border-radius: 5px; cursor: pointer; margin-left: 10px;">Cancel</button>
+            </form>
+        </div>
+
+        <div id="feedback-message"></div>
+
+        <h2 style="margin-top: 30px;">Your Current Bookings</h2>
+        <div id="myBookingsList"></div>
+
+        <p style="margin-top: 20px;"><a href="/profile">Back to Profile</a></p>
     </div>
 
-    <hr>
-
-    <div class="hall-section">
-        <h3>Large Hall</h3>
-        <div class="table-grid" id="largeHallGrid">
-            <p>Loading tables...</p>
-        </div>
-    </div>
-    
-    <div class="hall-section">
-        <h3>Small Hall</h3>
-        <div class="table-grid" id="smallHallGrid">
-            <p>Loading tables...</p>
-        </div>
-    </div>
-</main>
+    <script src="/js/bookings.js"></script>
+</body>
+</html>
