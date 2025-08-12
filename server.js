@@ -141,6 +141,17 @@ app.get('/api/current-user', isAuthenticated, (req, res) => {
     }
 });
 
+// API endpoint to get a list of all games
+app.get('/api/games', isAuthenticated, async (req, res) => {
+    try {
+        const result = await client.query("SELECT id, name FROM games ORDER BY name");
+        res.json({ games: result.rows });
+    } catch (error) {
+        console.error('Error fetching games:', error);
+        res.status(500).json({ message: 'Failed to fetch games.', error: error.message });
+    }
+});
+
 // API endpoint to fetch table availability for a given date
 app.get('/api/tables/availability', isAuthenticated, async (req, res) => {
     const { date } = req.query;
