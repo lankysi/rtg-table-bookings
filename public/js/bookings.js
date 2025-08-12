@@ -219,7 +219,7 @@ document.getElementById('confirmBookingForm').addEventListener('submit', async (
     const playerCount = document.getElementById('playerCount').value;
 
     try {
-        const response = await fetchData('/api/book-table', {
+        const response = await fetchData('/api/bookings', {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json'
@@ -253,62 +253,38 @@ document.getElementById('cancelFormBtn').addEventListener('click', () => {
 // Function to fetch and display the user's current bookings
 async function fetchAndDisplayMyBookings() {
     const myBookingsList = document.getElementById('myBookingsList');
-    if (!myBookingsList) {
-        console.error("My bookings list element not found.");
-        return;
-    }
-    myBookingsList.innerHTML = 'Loading your bookings...'; // Initial loading message
+    if (!myBookingsList) return;
+    myBookingsList.innerHTML = '<p>Loading your bookings...</p>';
 
     try {
-        const data = await fetchData('/api/user/bookings');
-        const userBookings = data.userBookings;
+        const myBookings = await fetchData('/api/user/bookings');
 
-        if (userBookings.length === 0) {
+        if (!myBookings || !myBookings.bookings || myBookings.bookings.length === 0) {
             myBookingsList.innerHTML = '<p>You have no upcoming bookings.</p>';
             return;
         }
 
-        myBookingsList.innerHTML = ''; // Clear previous content
-
-        userBookings.forEach(booking => {
-            const bookingItem = document.createElement('div');
-            bookingItem.classList.add('booking-item');
-            bookingItem.innerHTML = `
+        myBookingsList.innerHTML = '';
+        myBookings.bookings.forEach(booking => {
+            const bookingDiv = document.createElement('div');
+            bookingDiv.classList.add('booking-item');
+            bookingDiv.innerHTML = `
                 <p><strong>Date:</strong> ${booking.booking_date}</p>
                 <p><strong>Table:</strong> ${booking.table_name} (${booking.hall_name})</p>
-                <p><strong>Game:</strong> ${booking.game_name || 'N/A'}</p>
+                <p><strong>Game:</strong> ${booking.game_name || 'Not specified'}</p>
                 <p><strong>Players:</strong> ${booking.player_count}</p>
-                <button class="cancel-booking-btn" data-booking-id="${booking.booking_id}">Cancel Booking</button>
+                <button class="button secondary-button" data-booking-id="${booking.id}">Cancel</button>
             `;
-            myBookingsList.appendChild(bookingItem);
+            myBookingsList.appendChild(bookingDiv);
         });
 
-        // Add event listeners to cancel buttons
-        myBookingsList.querySelectorAll('.cancel-booking-btn').forEach(button => {
-            button.addEventListener('click', async (event) => {
-                const bookingId = event.target.dataset.bookingId;
-                if (confirm('Are you sure you want to cancel this booking?')) {
-                    try {
-                        const response = await fetchData(`/api/bookings/${bookingId}`, {
-                            method: 'DELETE'
-                        });
-                        showMessage(response.message, 'success');
-                        // Refresh both user's bookings and general table availability
-                        fetchAndDisplayMyBookings();
-                        // Refresh tables for the currently selected date
-                        const selectedDate = document.getElementById('tuesdaySelect').value;
-                        fetchAndDisplayTables(selectedDate);
-                    } catch (error) {
-                        console.error('Error cancelling booking:', error);
-                        showMessage(`Failed to cancel booking: ${error.message}`, 'error');
-                    }
-                }
-            });
+        myBookingsList.querySelectorAll('.secondary-button').forEach(button => {
+            button.addEventListener('click', cancelBooking);
         });
 
     } catch (error) {
         console.error('Error fetching user bookings:', error);
-        myBookingsList.innerHTML = `<p style="color: red;">Error loading your bookings: ${error.message}</p>`;
+        showMessage('Failed to load your bookings. Please try again.', 'error');
     }
 }
 
