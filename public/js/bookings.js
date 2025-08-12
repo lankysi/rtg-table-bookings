@@ -35,7 +35,7 @@ async function initializeBookingsPage() {
         console.log('Current User Data:', currentUser);
 
         // Fetch game options
-        const gamesData = await fetchData('/api/game-options');
+        const gamesData = await fetchData('/api/games');
         gameOptions = gamesData.games; // Assign to the top-level gameOptions
         console.log('Game Options:', gameOptions);
 
