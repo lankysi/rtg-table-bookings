@@ -1,0 +1,31 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>User Profile</title>
+    <link rel="stylesheet" href="/styles.css">
+</head>
+<body>
+    <div class="container">
+        <h1>Welcome, <%- user.username %>!</h1>
+        <div class="profile-header">
+            <img src="https://cdn.discordapp.com/avatars/<%- user.discord_id %>/<%- user.avatar %>.png" alt="User Avatar" class="profile-avatar">
+            <p>Your ID: <%- user.id %></p>
+        </div>
+        <hr>
+        <div class="profile-links">
+            <h3>Quick Links</h3>
+            <ul>
+                <li><a href="/bookings" class="button primary-button">Book a Table</a></li>
+                <% if (user.is_admin) { %>
+                <li><a href="/admin" class="button secondary-button">Admin Dashboard</a></li>
+                <% } %>
+            </ul>
+        </div>
+        <div class="logout-link">
+            <a href="/logout" class="button tertiary-button">Log Out</a>
+        </div>
+    </div>
+</body>
+</html>
