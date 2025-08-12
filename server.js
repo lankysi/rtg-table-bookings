@@ -127,6 +127,20 @@ app.get('/admin/all-bookings', ensureAdmin, (req, res) => {
 
 // API ENDPOINTS
 
+// API endpoint to get the current user's details
+app.get('/api/current-user', isAuthenticated, (req, res) => {
+    if (req.user) {
+        // Only return the necessary data, not the whole user object
+        res.json({
+            id: req.user.id,
+            username: req.user.username,
+            is_admin: req.user.is_admin
+        });
+    } else {
+        res.json(null);
+    }
+});
+
 // API endpoint to fetch table availability for a given date
 app.get('/api/tables/availability', isAuthenticated, async (req, res) => {
     const { date } = req.query;
