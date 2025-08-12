@@ -8,9 +8,13 @@
 </head>
 <body>
     <div class="container">
-        <h1>Welcome, <%- user.username %>!</h1>
+        <h1>Welcome, <%- user.username || 'User' %>!</h1>
         <div class="profile-header">
-            <img src="https://cdn.discordapp.com/avatars/<%- user.discord_id %>/<%- user.avatar %>.png" alt="User Avatar" class="profile-avatar">
+            <% if (user.discord_id && user.avatar) { %>
+                <img src="https://cdn.discordapp.com/avatars/<%- user.discord_id %>/<%- user.avatar %>.png" alt="User Avatar" class="profile-avatar">
+            <% } else { %>
+                <img src="/default-avatar.png" alt="Default Avatar" class="profile-avatar">
+            <% } %>
             <p>Your ID: <%- user.id %></p>
         </div>
         <hr>
