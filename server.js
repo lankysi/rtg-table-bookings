@@ -10,6 +10,20 @@ require('dotenv').config();
 const app = express();
 const PORT = process.env.PORT || 3000;
 
+const { Client } = require('pg');
+
+const client = new Client({
+    host: process.env.PGHOST,
+    user: process.env.PGUSER,
+    password: process.env.PGPASSWORD,
+    database: process.env.PGDATABASE,
+    port: process.env.PGPORT
+});
+
+client.connect()
+    .then(() => console.log('Connected to PostgreSQL database'))
+    .catch(err => console.error('Connection error', err.stack));
+
 // Middleware
 app.use(express.static('public'));
 app.use(express.json());
