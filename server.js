@@ -7,7 +7,6 @@ const ejs = require('ejs');
 require('dotenv').config();
 
 const app = express();
-const PORT = process.env.PORT || 3000;
 
 const { Client } = require('pg');
 
@@ -18,6 +17,25 @@ const client = new Client({
     database: process.env.PGDATABASE,
     port: process.env.PGPORT
 });
+
+async function startServer() {
+    try {
+        await client.connect();
+        console.log('Connected to PostgreSQL database');
+
+        const PORT = process.env.PORT || 3000;
+        app.listen(PORT, () => {
+            console.log(`Server listening on port ${PORT}`);
+        });
+
+    } catch (err) {
+        console.error('Database connection failed', err.stack);
+        process.exit(1); // Exit with failure code
+    }
+}
+
+// Start the server
+startServer();
 
 // Middleware
 app.use(express.static('public'));
