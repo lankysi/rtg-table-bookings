@@ -4,11 +4,20 @@ const passport = require('passport');
 const DiscordStrategy = require('passport-discord').Strategy;
 const path = require('path');
 const ejs = require('ejs');
-const client = require('./database.js'); // The new PostgreSQL client
 require('dotenv').config();
 
 const app = express();
 const PORT = process.env.PORT || 3000;
+
+const { Client } = require('pg');
+
+const client = new Client({
+    host: process.env.PGHOST,
+    user: process.env.PGUSER,
+    password: process.env.PGPASSWORD,
+    database: process.env.PGDATABASE,
+    port: process.env.PGPORT
+});
 
 // Middleware
 app.use(express.static('public'));
