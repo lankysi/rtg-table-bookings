@@ -465,7 +465,3 @@ app.delete('/api/admin/bookings/:id', ensureAdmin, async (req, res) => {
         res.status(500).json({ message: 'Failed to cancel booking.', error: error.message });
     }
 });
-
-app.listen(PORT, () => {
-    console.log(`Server running on http://localhost:${PORT}`);
-});
