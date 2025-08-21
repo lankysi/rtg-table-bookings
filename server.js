@@ -32,7 +32,7 @@ app.use(passport.session());
 passport.use(new DiscordStrategy({
     clientID: process.env.DISCORD_CLIENT_ID,
     clientSecret: process.env.DISCORD_CLIENT_SECRET,
-    callbackURL: process.env.RAILWAY_STATIC_URL ? `${process.env.RAILWAY_STATIC_URL}/auth/discord/callback` : 'http://localhost:3000/auth/discord/callback',
+    callbackURL: 'https://rtg-table-bookings-production.up.railway.app/auth/discord/callback',    
     scope: ['identify']
 }, async (accessToken, refreshToken, profile, done) => {
     try {
