@@ -23,7 +23,9 @@
             <ul>
                 <li><a href="/bookings" class="button primary-button">Book a Table</a></li>
                 <% if (user.is_admin) { %>
-                <li><a href="/admin" class="button secondary-button">Admin Dashboard</a></li>
+                <a href="/bookings" class="btn btn-primary">View all bookings</a>
+                <a href="/manage-games" class="btn btn-primary">Manage games</a>
+                <a href="/manage-tables" class="btn btn-primary">Manage tables</a>
                 <% } %>
             </ul>
         </div>
